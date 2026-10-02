@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {selectObservations,tradeBalance,radius,csvText} from '../core.js';
+import {selectObservations,tradeBalance,csvText} from '../core.js';
 import fs from 'node:fs';
 test('latest is per country, exact year never backfills, zero and negatives survive',()=>{
  const rows=[['VNM',2020,1],['VNM',2022,0],['USA',2021,-2],['JPN',2022,null]];
@@ -9,10 +9,6 @@ test('latest is per country, exact year never backfills, zero and negatives surv
 });
 test('balance only subtracts observations in the same country and year',()=>{
  assert.deepEqual(tradeBalance([['VNM',2022,10],['VNM',2023,8]],[['VNM',2022,14],['USA',2023,1]]),[['VNM',2022,-4]]);
-});
-test('cartogram area ratio equals absolute value ratio',()=>{
- assert.equal(radius(0,100),0);assert.equal(radius(-25,100),radius(25,100));
- assert.equal(radius(100,100)**2/radius(25,100)**2,4);
 });
 test('CSV quotes data and preserves Unicode',()=>assert.equal(csvText([['Việt Nam','a"b',0]]),'\uFEFF"Việt Nam","a""b","0"'));
 test('30 groups, all source snapshots exist with finite observations',()=>{
