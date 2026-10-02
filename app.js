@@ -4,7 +4,7 @@ const state={mode:'map',metric:'population',code:'SP.POP.TOTL',year:'latest',reg
 const cache=new Map(); let catalog,features,projection,path,layer,zoom,rows=[],dataset,observations=new Map(),color,visible=[],requestId=0;
 const svg=d3.select('#map');
 const names=new Intl.DisplayNames(['vi'],{type:'region'});
-const num=new Intl.NumberFormat('vi-VN',{maximumFractionDigits:2});
+const num=new Intl.NumberFormat('vi-VN',{maximumFractionDigits:3});
 const compact=new Intl.NumberFormat('vi-VN',{notation:'compact',maximumFractionDigits:2});
 const fmt=v=>v==null?'Không có dữ liệu':num.format(v);
 const short=v=>v==null?'—':Math.abs(v)>=10000?compact.format(v):num.format(v);
@@ -64,7 +64,9 @@ function render(){
  }else{
    layer.append('g').selectAll('path').data(visible).join('path').attr('d',path).attr('fill','#e4e9e7').attr('opacity',.45).attr('stroke','white').attr('stroke-width',.5);
    const max=d3.max(values,v=>Math.abs(v))||0;
-   const nodes=validFeatures().filter(f=>observations.get(f.id).value!==0).map(f=>{const xy=projection(f.properties.center);return {f,anchorX:xy[0],anchorY:xy[1],x:xy[0],y:xy[1],r:radius(observations.get(f.id).value,max)}});
+   const normalizedTotal=max?d3.sum(values,v=>Math.abs(v)/max):0;
+   const maxRadius=normalizedTotal?Math.min(55,Math.sqrt(90000/(Math.PI*normalizedTotal))):0;
+   const nodes=validFeatures().filter(f=>observations.get(f.id).value!==0).map(f=>{const xy=projection(f.properties.center);return {f,anchorX:xy[0],anchorY:xy[1],x:xy[0],y:xy[1],r:radius(observations.get(f.id).value,max,maxRadius)}});
    const sim=d3.forceSimulation(nodes).randomSource(d3.randomLcg(0.42)).force('x',d3.forceX(n=>n.anchorX).strength(.13)).force('y',d3.forceY(n=>n.anchorY).strength(.13)).force('collide',d3.forceCollide(n=>n.r+1.2).iterations(5)).stop();
    for(let i=0;i<220;i++)sim.tick();
    // Resolve remaining overlaps without changing quantitative radii.
@@ -74,6 +76,12 @@ function render(){
        const a=nodes[i],b=nodes[j],dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy)||.001,target=a.r+b.r+1;
        if(dist<target){const correction=(target-dist)/2,ux=dx/dist||1,uy=dy/dist;a.x-=ux*correction;a.y-=uy*correction;b.x+=ux*correction;b.y+=uy*correction;overlaps++}
      }if(!overlaps)break;
+   }
+   if(nodes.length){
+     const left=d3.min(nodes,n=>n.x-n.r),right=d3.max(nodes,n=>n.x+n.r),top=d3.min(nodes,n=>n.y-n.r),bottom=d3.max(nodes,n=>n.y+n.r);
+     const fit=Math.min(1,950/(right-left),490/(bottom-top));
+     const dx=left<20?20-left: right>980?980-right:0,dy=top<20?20-top:bottom>520?520-bottom:0;
+     for(const n of nodes){n.x=fit<1?25+(n.x-left)*fit:n.x+dx;n.y=fit<1?25+(n.y-top)*fit:n.y+dy;n.r*=fit}
    }
    const circles=layer.append('g').selectAll('circle').data(nodes).join('circle').attr('cx',n=>n.x).attr('cy',n=>n.y).attr('r',n=>n.r).attr('fill',n=>color(observations.get(n.f.id).value)).attr('opacity',.94);
    wire(circles,n=>n.f);
