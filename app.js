@@ -1,7 +1,7 @@
 import {shapePath} from './cartogram-engine.js';
 import {selectObservations,tradeBalance,csvText} from './core.js';
 const $=id=>document.getElementById(id), d3=window.d3;
-const state={mode:'map',metric:'population',code:'SP.POP.TOTL',year:'latest',region:'all',selected:'VNM',palette:'spectral'};
+const state={mode:'cartogram',metric:'population',code:'SP.POP.TOTL',year:'latest',region:'all',selected:'VNM',palette:'atelier'};
 const cartogramCache=new Map();let cartogramWorker=null,renderVersion=0;
 const cache=new Map(); let catalog,features,projection,path,layer,zoom,rows=[],dataset,observations=new Map(),color,visible=[],requestId=0;
 const svg=d3.select('#map');
@@ -53,7 +53,7 @@ function render(){
  visible=features.filter(f=>state.region==='all'||f.properties.continent===state.region);
  const values=validFeatures().map(f=>observations.get(f.id).value),extent=d3.extent(values);const lo=extent[0]??0,hi=extent[1]??0;const bound=Math.max(Math.abs(lo),Math.abs(hi));
  const palette=state.palette==='turbo'?d3.interpolateTurbo:state.palette==='viridis'?d3.interpolateViridis:t=>d3.interpolateSpectral(1-t);
- const colors=d3.range(7).map(i=>palette(.08+.84*i/6));
+ const colors=state.palette==='atelier'?['#597c9b','#73a9ad','#aac4b1','#e7cf93','#e9a26f','#ce756d','#934c70']:d3.range(7).map(i=>palette(.08+.84*i/6));
  color=d3.scaleQuantile().domain(values).range(colors);
  const edges=[lo,...color.quantiles(),hi];
  $('legend-gradient').style.background='none';$('legend-gradient').replaceChildren();
@@ -64,7 +64,9 @@ function render(){
  const version=++renderVersion;if(cartogramWorker){cartogramWorker.terminate();cartogramWorker=null}
  $('tooltip').hidden=true;$('loading').hidden=true;
  layer.selectAll('*').remove();
- layer.append('path').datum({type:'Sphere'}).attr('d',path).attr('fill','#f4f8f8').attr('stroke','#e5eeec').attr('stroke-width',.7);
+ document.querySelector('.map-card').classList.toggle('art-view',state.mode==='cartogram');
+ svg.attr('data-style',state.mode==='cartogram'?'atelier':'geographic');
+ if(state.mode==='map')layer.append('path').datum({type:'Sphere'}).attr('d',path).attr('fill','#f4f8f8').attr('stroke','#e5eeec').attr('stroke-width',.7);
  if(state.mode==='map')layer.append('path').datum(d3.geoGraticule10()).attr('d',path).attr('fill','none').attr('stroke','#e5edeb').attr('stroke-width',.4);
  if(state.mode==='map'){
    const shapes=layer.append('g').selectAll('path').data(visible).join('path').attr('d',path).attr('fill',f=>observations.has(f.id)?color(observations.get(f.id).value):'#e4e9e7');wire(shapes);
@@ -73,11 +75,26 @@ function render(){
    const draw=result=>{
      if(version!==renderVersion)return;
      const lookup=new Map(result.shapes.map(s=>[s.id,s]));
-     const shapes=layer.append('g').selectAll('path').data(visible).join('path')
+     const defs=layer.append('defs');
+     const paper=defs.append('pattern').attr('id','art-paper').attr('width',7).attr('height',7).attr('patternUnits','userSpaceOnUse');
+     paper.append('circle').attr('cx',2).attr('cy',2).attr('r',.45).attr('fill','#b5a48b').attr('opacity',.16);
+     colors.forEach((c,i)=>{const g=defs.append('linearGradient').attr('id','art-color-'+i).attr('x1','0%').attr('y1','0%').attr('x2','90%').attr('y2','100%');g.append('stop').attr('offset','0%').attr('stop-color',d3.color(c).brighter(.3));g.append('stop').attr('offset','100%').attr('stop-color',c)});
+     const shadow=defs.append('filter').attr('id','art-shadow').attr('x','-8%').attr('y','-8%').attr('width','116%').attr('height','120%');
+     shadow.append('feDropShadow').attr('dx',0).attr('dy',3).attr('stdDeviation',3).attr('flood-color','#5f485a').attr('flood-opacity',.13);
+     layer.append('rect').attr('width',1000).attr('height',540).attr('rx',18).attr('fill','#faf7f0');
+     layer.append('rect').attr('width',1000).attr('height',540).attr('rx',18).attr('fill','url(#art-paper)').attr('pointer-events','none');
+     const frame=layer.append('g').attr('pointer-events','none');
+     frame.append('rect').attr('x',9).attr('y',9).attr('width',982).attr('height',522).attr('rx',12).attr('fill','none').attr('stroke','#d8c9b2').attr('stroke-width',.6);
+     const plate=(text,x,y,anchor='start')=>frame.append('text').attr('x',x).attr('y',y).attr('text-anchor',anchor).attr('font-size',8).attr('font-family','sans-serif').attr('letter-spacing',2).attr('fill','#9d8c79').text(text);
+     plate('ATELIER / WORLD ATLAS',26,26);plate('DỮ LIỆU ĐỊNH HÌNH THẾ GIỚI',974,26,'end');
+     plate('LONG NGO • CARTOGRAM STUDIES',26,519);plate(state.year==='latest'?'QUAN SÁT MỚI NHẤT':state.year,974,519,'end');
+     const shapes=layer.append('g').attr('filter','url(#art-shadow)').selectAll('path').data(visible).join('path')
        .attr('d',f=>shapePath(lookup.get(f.id),result.points))
-       .attr('fill',f=>observations.has(f.id)?color(observations.get(f.id).value):'#dfe5e9');
+       .attr('fill',f=>observations.has(f.id)?`url(#art-color-${colors.indexOf(color(observations.get(f.id).value))})`:'#dddcd5')
+       .attr('stroke','#fffaf1').attr('stroke-width',.7).attr('stroke-linejoin','round');
      wire(shapes);
      shapes.attr('data-cartogram','area').attr('data-iso',f=>f.id);
+     drawArtLabels(result,lookup);
      const error=result.error==null?'không có giá trị khác 0':`sai lệch phân bổ diện tích ${(result.error*100).toFixed(1)}%`;
      $('encoding').textContent=`Đa giác biến dạng theo |giá trị| · ${error}. Màu: 7 lớp phân vị.`;
      $('loading').hidden=true;$('svg-export').disabled=!dataset;
@@ -105,6 +122,25 @@ function render(){
    }
  }
  renderSummary();renderRanking();renderDetail();
+}
+function drawArtLabels(result,lookup){
+ const labels=[],occupied=[];
+ const candidates=visible.filter(f=>observations.has(f.id)).sort((a,b)=>Math.abs(observations.get(b.id).value)-Math.abs(observations.get(a.id).value)).slice(0,9);
+ for(const f of candidates){
+  const rings=lookup.get(f.id).rings.map(r=>r.map(i=>result.points[i]));
+  const outer=rings.reduce((a,b)=>Math.abs(d3.polygonArea(a))>Math.abs(d3.polygonArea(b))?a:b,[]);
+  if(!outer.length)continue;
+  const [xmin,xmax]=d3.extent(outer,p=>p[0]),[ymin,ymax]=d3.extent(outer,p=>p[1]);let best=null,clearance=0;
+  for(let i=1;i<12;i++)for(let j=1;j<12;j++){
+   const p=[xmin+(xmax-xmin)*i/12,ymin+(ymax-ymin)*j/12];
+   if(rings.filter(r=>d3.polygonContains(r,p)).length%2!==1)continue;
+   let distance=Infinity;
+   for(const ring of rings)for(let k=0;k<ring.length;k++){const a=ring[k],b=ring[(k+1)%ring.length],dx=b[0]-a[0],dy=b[1]-a[1],t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy||1)));distance=Math.min(distance,Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy))}
+   if(distance>clearance){clearance=distance;best=p}
+  }
+  if(best&&clearance>12&&!occupied.some(p=>Math.hypot(p[0]-best[0],p[1]-best[1])<42)){occupied.push(best);labels.push({f,p:best})}
+ }
+ layer.append('g').attr('pointer-events','none').selectAll('text').data(labels).join('text').attr('x',d=>d.p[0]).attr('y',d=>d.p[1]+3).attr('text-anchor','middle').attr('font-family','sans-serif').attr('font-size',9).attr('font-weight',600).attr('letter-spacing',1.4).attr('fill',d=>d3.lab(color(observations.get(d.f.id).value)).l<64?'#fffaf1':'#3f4d58').text(d=>d.f.id);
 }
 function wire(selection,unwrap=d=>d){
  selection.attr('class',d=>'country'+(unwrap(d).id===state.selected?' selected':'')).attr('tabindex',0).attr('role','button').attr('aria-label',d=>{const f=unwrap(d),o=observations.get(f.id);return `${countryName(f)}: ${fmt(o?.value)}, ${o?.year??'không có năm'}`});
@@ -164,8 +200,8 @@ async function init(){
  if(!d3)throw new Error('Không tải được thư viện bản đồ.');
  [catalog,features]=await Promise.all([json('data/indicators.json'),json('data/world.geojson')]);
  features=features.features.filter(f=>f.properties.ISO_A3!=='ATA').map(f=>{const p=f.properties;return {...f,id:p.ADM0_A3==='KOS'?'XKX':p.ISO_A3!=='-99'?p.ISO_A3:p.ADM0_A3,properties:{name:p.NAME,iso2:p.ISO_A2_EH||p.ISO_A2,continent:p.CONTINENT,center:[p.LABEL_X,p.LABEL_Y]}}});
- const p=new URLSearchParams(location.hash.slice(1));if(catalog.some(m=>m.id===p.get('metric')))state.metric=p.get('metric');state.code=current().series.some(s=>s[0]===p.get('code'))?p.get('code'):current().series[0][0];if(p.get('mode')==='cartogram')state.mode='cartogram';if(p.get('year')==='latest'||/^(201\d|202[0-5])$/.test(p.get('year')))state.year=p.get('year');if([...$('region').options].some(o=>o.value===p.get('region')))state.region=p.get('region');if(features.some(f=>f.id===p.get('selected')))state.selected=p.get('selected');
- if(['spectral','turbo','viridis'].includes(p.get('palette')))state.palette=p.get('palette');$('palette').value=state.palette;
+ const p=new URLSearchParams(location.hash.slice(1));if(catalog.some(m=>m.id===p.get('metric')))state.metric=p.get('metric');state.code=current().series.some(s=>s[0]===p.get('code'))?p.get('code'):current().series[0][0];if(['map','cartogram'].includes(p.get('mode')))state.mode=p.get('mode');if(p.get('year')==='latest'||/^(201\d|202[0-5])$/.test(p.get('year')))state.year=p.get('year');if([...$('region').options].some(o=>o.value===p.get('region')))state.region=p.get('region');if(features.some(f=>f.id===p.get('selected')))state.selected=p.get('selected');
+ if(['atelier','spectral','turbo','viridis'].includes(p.get('palette')))state.palette=p.get('palette');$('palette').value=state.palette;
  $('region').value=state.region;for(const btn of document.querySelectorAll('[data-mode]')){const active=btn.dataset.mode===state.mode;btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',active)}
  $('year').replaceChildren(new Option('Mới nhất','latest'),...d3.range(2025,2009,-1).map(y=>new Option(y,y)));$('year').value=state.year;
  projection=d3.geoEqualEarth().fitExtent([[22,15],[978,515]],{type:'Sphere'});path=d3.geoPath(projection);layer=svg.append('g');zoom=d3.zoom().scaleExtent([1,8]).translateExtent([[-100,-100],[1100,640]]).on('zoom',e=>layer.attr('transform',e.transform));svg.call(zoom);

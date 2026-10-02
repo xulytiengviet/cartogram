@@ -11,3 +11,11 @@ Bản này thay Dorling bằng đa giác biến dạng liên tục; kết quả 
 - Không xác nhận hình học đầu ra dùng được cho phân tích GIS hoặc mọi biên không tự giao; mục tiêu là trực quan hóa bản đồ thống kê.
 
 Nguồn dữ liệu được giữ nguyên. GitHub Pages đã bật trước lần cập nhật này; hai workflow được bổ sung engine và worker vào gói triển khai.
+
+## Bản Atelier
+
+- 7/7 kiểm thử đạt, gồm kiểm tra bước làm dịu không sửa lưới gốc, giữ chỉ số đỉnh chung và tính lại sai lệch đúng từ hình học hiển thị.
+- Chromium: 176 đa giác, 7 gradient SVG, không lỗi JavaScript; chuyển Cartographic/Cartogram, đổi bảng màu, xuất SVG hoạt động.
+- Đã xem ảnh desktop 1440px và mobile 390px; không tràn ngang.
+- Sai lệch phân bổ diện tích dân số sau làm dịu: 2,6% (so với 2,3% trước làm dịu). Được hiển thị trên giao diện.
+- Nền giấy, gradient, bóng đổ, nhãn là yếu tố trình bày; chuyển sắc trong cùng một lớp không mã hóa biến dữ liệu bổ sung.

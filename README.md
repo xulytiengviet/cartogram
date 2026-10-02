@@ -67,5 +67,13 @@ Mã nguồn MIT. Dữ liệu và thư viện bên thứ ba tuân theo giấy ph�
 - Diện tích mục tiêu dùng trị tuyệt đối dữ liệu. Sai lệch = ½ tổng |tỷ phần diện tích − tỷ phần giá trị| của các quốc gia có giá trị khác 0. Không phải sai số tối đa từng quốc gia.
 - Diện tích sàn: 10⁻⁷ tổng diện tích ban đầu của các quốc gia có giá trị khác 0. Vì có sàn và giới hạn vòng lặp, không tuyên bố tỷ lệ chính xác. Không dùng hình học kết quả cho đo đạc/phân tích GIS.
 - Các nước thiếu dữ liệu không được gán giá trị; hình học của chúng dịch chuyển theo trường lực lân cận.
-- Ba bảng màu: Spectral, Turbo, Viridis. Cả hai chế độ dùng 7 lớp phân vị cùng ngưỡng. Tooltip trên ô chú giải ghi khoảng giá trị. Màu không biểu thị âm/dương hoặc tốt/xấu.
+- Bốn bảng màu: Atelier (mặc định), Spectral, Turbo, Viridis. Cả hai chế độ dùng 7 lớp phân vị cùng ngưỡng. Tooltip trên ô chú giải ghi khoảng giá trị. Màu không biểu thị âm/dương hoặc tốt/xấu.
 - Worker được hủy khi đổi chỉ tiêu/năm/khu vực/chế độ; cache tối đa 12 kết quả. Đổi bảng màu dùng lại hình học đã tính.
+
+## Atelier — trình bày nghệ thuật
+
+Mặc định mở cartogram với nền giấy ngà, hoa văn chấm nhẹ, bảng màu khoáng, chuyển sắc trong từng lớp màu, bóng đổ và nhãn ISO chọn lọc. Chuyển sắc chỉ trang trí trong lớp màu, không biểu thị một biến số bổ sung. Các nhãn được chọn ở điểm nằm trong đa giác và cách biên đủ xa.
+
+Sau biến dạng, lưới dùng chung được làm dịu ba lượt với bước dịch chuyển giới hạn theo cạnh ngắn nhất. Không làm cong độc lập từng quốc gia. Chỉ chấp nhận lượt không đảo hướng toàn bộ đa giác; sai lệch diện tích tính lại từ lưới thực sự hiển thị. Đây vẫn là bản đồ trực quan hóa xấp xỉ, không phải hình học dành cho phân tích GIS.
+
+Các họa tiết, gradient, nhãn và bóng đổ là SVG gốc, được giữ khi xuất SVG.

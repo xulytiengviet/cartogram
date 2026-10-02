@@ -82,3 +82,27 @@ export function deform(mesh,{iterations=160,onProgress=()=>{}}={}){
   return {points,shapes,error,iterations:completed};
 }
 export function shapePath(shape,points){return shape.rings.map(ring=>'M'+ring.map(i=>points[i].map(v=>v.toFixed(3)).join(',')).join('L')+'Z').join('')}
+
+/** Gentle shared-vertex fairing for the art view; no independent polygon smoothing.
+ * Movement is bounded by the shortest incident edge; area residual is remeasured.
+ */
+export function soften(result){
+ const points=result.points.map(p=>[...p]),neighbors=points.map(()=>new Set());
+ for(const shape of result.shapes)for(const ring of shape.rings)for(let i=0;i<ring.length;i++){
+  const a=ring[i],b=ring[(i+1)%ring.length];if(a!==b){neighbors[a].add(b);neighbors[b].add(a)}
+ }
+ for(let pass=0;pass<3;pass++){
+  const next=points.map((p,i)=>{
+   const ids=[...neighbors[i]];if(!ids.length)return [...p];
+   let x=0,y=0,shortest=Infinity;
+   for(const j of ids){x+=points[j][0];y+=points[j][1];shortest=Math.min(shortest,Math.hypot(points[j][0]-p[0],points[j][1]-p[1]))}
+   const dx=x/ids.length-p[0],dy=y/ids.length-p[1],factor=Math.min(.16,.1*shortest/(Math.hypot(dx,dy)||1),.7/(Math.hypot(dx,dy)||1));
+   return [p[0]+dx*factor,p[1]+dy*factor];
+  });
+  if(!result.shapes.every(s=>geometryStats(s,next).signed*geometryStats(s,points).signed>0))break;
+  for(let i=0;i<points.length;i++)points[i]=next[i];
+ }
+ const active=result.shapes.filter(s=>Number.isFinite(s.value)&&Math.abs(s.value)>0),total=active.reduce((t,s)=>t+Math.abs(s.value),0),areas=active.map(s=>geometryStats(s,points).area),area=areas.reduce((a,b)=>a+b,0);
+ const error=total&&area?areas.reduce((e,a,i)=>e+Math.abs(a/area-Math.abs(active[i].value)/total),0)/2:null;
+ return {...result,points,error};
+}

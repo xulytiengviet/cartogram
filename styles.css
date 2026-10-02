@@ -3,3 +3,16 @@
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 
 .gradient{display:flex;overflow:hidden;width:230px;height:10px}.gradient span{flex:1;border-right:1px solid #fff8}.gradient span:last-child{border:0}.filters{flex-wrap:wrap;gap:12px}.map-toolbar{flex-wrap:wrap}.map-tools{z-index:2}
+
+/* Atelier: an editorial print treatment for quantitative cartograms. */
+.art-view{background:#fffdf9;border-color:#e8dfd1;box-shadow:0 12px 40px #58443108}
+.art-view .map-heading{padding-bottom:16px}.art-view .map-heading h2{font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:30px;color:#493b43;letter-spacing:-.5px}
+.art-view .pill{border-color:#dfcdb7;color:#99785e;background:#faf3e8}
+.art-view .canvas-wrap{padding:0 20px}.art-view .country{stroke:#fff9ef;stroke-width:.7;stroke-linejoin:round;transition:filter .18s,stroke-width .18s}
+.art-view .country:hover,.art-view .country:focus{stroke:#443342;stroke-width:1.4;filter:brightness(1.08)}
+.art-view .country.selected{stroke:#514057;stroke-width:1.7}
+.art-view .legend-row{border-color:#e9dfd0}.art-view .map-tools{background:#fffcf5;border-color:#e5dacb}
+.art-view .segmented{background:#f1eae0}.art-view .segmented .active{color:#805267}.art-view #loading{color:#805267;background:#fffaf1ed;box-shadow:0 8px 30px #4c314411}
+@media(max-width:760px){.art-view .canvas-wrap{padding:0 7px}.art-view .map-heading h2{font-size:27px}}
+@media(prefers-reduced-motion:reduce){.art-view .country{transition:none}}
+.filters #palette{max-width:185px}@media(max-width:760px){.filters #palette{max-width:180px}}
